@@ -13,7 +13,7 @@ let remove_list_first_element = function
   | [] -> [] 
   | h :: t -> t
 
-let clear = function () -> Sys.command("clear")
+let clear = function x -> ignore(Sys.command("clear")+x)
 
 
 
@@ -159,15 +159,15 @@ let print_all_recipes recipes_list =
 let main = 
   let raw_recipes = remove_list_first_element (read_lines_file_to_list recipes_file) in  (* Coloca as linhas do ficheiro numa lista com a exceção da primeira *)
   let list_recipes = split_string_by_semicolon raw_recipes in                            (* Separa as strings por ";" para uma lista de listas*)
+  clear 1;
   while !menu=1 do
-    clear;
     print_menu list_recipes;
     let opt = read_line () in
     match opt with
-      "1" -> print_all_recipes list_recipes
-    | "2" -> print_string "\nOpção 2"
-    | "3" -> print_string "\nOpção 3"
-    | "0" -> print_string "\nA Sair"; menu := 0
-    | _ -> print_string "\n\nPor favor insira uma Opção Válida\n\n"
+      "1" -> clear 1; print_all_recipes list_recipes
+    | "2" -> clear 1; print_string "\n\nOpção 2\n\n"
+    | "3" -> clear 1; print_string "\n\nOpção 3\n\n"
+    | "0" -> clear 1; print_string "\n\nA Sair...\n\n"; menu := 0
+    | _   -> clear 1; print_string "\n\nPor favor insira uma Opção Válida\n\n"
   done
 

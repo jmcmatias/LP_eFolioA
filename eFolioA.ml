@@ -17,7 +17,6 @@ let remove_list_first_element = function
 (*Limpa o ecran*)
 let clear = function x -> ignore(Sys.command("clear")+x)
 
-
 (*Recebe e valida um inteiro
 Caso retorne zero, significa que ou foi inserido zero ou então não foi inserido um inteiro*)
 let input_int n = 
@@ -25,13 +24,7 @@ let input_int n =
     read_int()
   with Failure _-> -1
 
-let valid_int_choice n = 
-  if n = -1 then false
-  else true
-
-(*
-Datatype das receitas
-*)
+(*Datatype das receitas*)
 type recipe =
 {
   number: string;
@@ -89,20 +82,16 @@ let get_recipe l:recipe =
 
 (*****************FUNÇÓES DE IMPRESSÃO***********)
 
-
-
-
-(*Funções que imprimem a lista de recitas existentes*)
 (*imprime o info de uma receita, numero e nome*)
 let print_recipe_info  = function
   | []->()
   | x :: y :: t -> print_string ("            "^x^"-"^y^"\n") 
-  | x -> ()                   
+  | x -> ()
+           
 (*imprime o info de todas as receitas*)
 let rec print_recipe_list = function 
   []->()
   |x::t->print_recipe_info x; print_recipe_list t
-
 
 (*Função que imprime o Menu*)
 let print_menu rl= 
@@ -114,7 +103,7 @@ let print_menu rl=
   print_string "| Selecione uma das opcoes digitanto o numero da opcao seguido de enter |\n";
   print_string "-------------------------------------------------------------------------\n";
   print_string "| 1-Imprime todas as receitas                                           |\n";                                       
-  print_string "| 2-Imprime uma receitas                                                |\n";
+  print_string "| 2-Imprime uma receita                                                 |\n";
   print_string "| 3-Imprime a analise a 3 receitas, mostrando as quantidades totais de  |\n";
   print_string "|   cada ingrediente do conjunto de receitas                            |\n";
   print_string "|                                                                       |\n";
@@ -145,7 +134,6 @@ let rec print_ingredient_list = function
         end
   | h::t -> print_string h
 
-
 (*Função que imprime uma receita completa*)
 let print_full_recipe recipe = 
   print_recipe_with_prep_mode recipe;
@@ -156,8 +144,7 @@ let print_full_recipe recipe =
 
 (*Função que imprime uma receita pré-selecionada
 INPUT: Lista de receitas (já separada por ';') cada receita é também uma lista
-OUTPUT: impressão no ecrã da receita seleccionada
-*)
+OUTPUT: impressão no ecrã da receita seleccionada*)
 
 let print_one_recipe recipes_list =
   let n = ref (input_int 0) in
@@ -179,10 +166,6 @@ let print_one_recipe recipes_list =
       end
   done
 
-
-    
-
-
 (*Função que imprime a lista de receitas
 INPUT: Lista de receitas (já separada por ';')
 OUTPUT: impressão no ecran das receitas*)
@@ -200,9 +183,7 @@ let print_all_recipes recipes_list =
   print_newline();
 ;;
 
-
 (*Menu Principal*)
-
 let main = 
   let raw_recipes = remove_list_first_element (read_lines_file_to_list recipes_file) in  (* Coloca as linhas do ficheiro numa lista com a exceção da primeira *)
   let list_recipes = split_string_by_semicolon raw_recipes in                            (* Separa as strings por ";" para uma lista de listas*)
@@ -218,4 +199,3 @@ let main =
     | "0" -> clear 1; print_string "\n\nA Sair...\n\n"; menu := 0
     | _   -> clear 1; print_string "\n\nPor favor insira uma Opção Válida\n\n"
   done
-

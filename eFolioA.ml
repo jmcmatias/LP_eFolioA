@@ -7,7 +7,18 @@ let menu = ref 1
 let opt2 = ref ""
 let s = ref 0
 
-(*Funções Auxiliares*)
+let n_rec = 3 (*número de receitas a ser analisadas para as quantidades totais de cada ingrediente*)
+
+(*Datatype das receitas*)
+type recipe =
+{
+  number: string;
+  name: string;
+  prep_mode: string;
+  ingredients: string list list;
+}
+
+(*************   Funções Auxiliares   *************)
 
 (*Remove o primeiro elemento de uma lista*)
 let remove_list_first_element = function
@@ -24,14 +35,18 @@ let input_int n =
     read_int()
   with Failure _-> -1
 
-(*Datatype das receitas*)
-type recipe =
-{
-  number: string;
-  name: string;
-  prep_mode: string;
-  ingredients: string list;
-}
+(*Função que converte um array numa lista*)
+let array_to_list a =
+  Array.fold_right List.cons a []
+
+
+(*Função que imprime uma lista*)
+(*Apenas foi utilizada para DEBUG*)
+let rec print_list = function
+  | [] -> ()
+  | h::t -> print_string (" "^h^" "); print_list t
+  
+(*************   Funções de tratamento de Listas   *************)
 
 (*Função de leitura do ficheiro
 Input: name - Nome do ficheiro
@@ -54,31 +69,40 @@ let read_lines_file_to_list name : string list =
       else
         []
 
-(*Função que devolve os ingredientes (faz split da lista a partir do elemento 3)
+(*Função que devolve os ingredientes (faz split da lista a partir do elemento n)
 INPUT: Lista Receita
 OUTPUT: Lista de Ingredientes e Quantidades*)
-let get_ingredients_from_recipe list =
+let split_from_n n list =
   let rec aux i acc = function
     | [] -> List.rev []
     | h :: t as l -> if i = 0 then  l
         else aux (i - 1) (h :: acc) t 
   in
-  aux 3 [] list
+  aux n [] list
 
 (*Função para dividir a informação de uma string a cada ";"*)        
 let rec split_string_by_semicolon l = match l with
 | [] -> []
-| s :: rest -> (Str.split (Str.regexp ";") s) :: split_string_by_semicolon rest
+| h :: t -> (Str.split (Str.regexp ";") h) :: split_string_by_semicolon t
+
+(*Função que agrupa ingredientes com quantidades a partir de uma lista "flattened" de ingrediente;quantidade;ingrediente;quan...
+INPUT: lista de strings
+OUTPUT: lista de listas com pares*)
+let rec group_ingredient_quantity = function
+  | x :: (y :: tl) -> [x;y] :: (group_ingredient_quantity tl)
+  | [] | _::[] -> []
 
 (*Função que transforma uma receita(lista) num tipo recipe *)
 let get_recipe l:recipe =
-  let rec_ingredients = get_ingredients_from_recipe l in
+  let rec_ingredients = group_ingredient_quantity (split_from_n 3 l) in
   {
     number = List.nth l 0;
     name = List.nth l 1;
     prep_mode = List.nth l 2;
     ingredients = rec_ingredients;
   } 
+
+
 
 (*****************FUNÇÓES DE IMPRESSÃO***********)
 
@@ -115,37 +139,48 @@ let print_menu rl=
 let print_recipe_with_prep_mode recipe = print_string (""^ recipe.number ^" - "^ recipe.name ^"\n"^ recipe.prep_mode ^" ")
 
 (*Funções para impressão de um ingrediente com a sua quantidade*)
-let print_ingredient_line x y = print_string (""^x^": "^y^"\n ")   (* caso geral *)
-let print_ingredient_line_odd x  = print_string (""^x^"\n")       (* Caso em que a lista de ingredientes tem número impar de elementos *)
+let rec print_list = function
+  | [] -> ()
+  | h::t -> if h="" then print_list t 
+  else begin print_string (" "^h^": "); print_list t end
 
 (*Função que imprime a lista de ingredientes
 INPUT: Lista de ingredientes
 OUTPUT: impressão no ecran dos ingredientes e suas quantidades*)
 let rec print_ingredient_list = function 
   | [] -> () 
-  | x::(y::t) -> if x="" then print_ingredient_list t 
-      else if y="" then begin
-        print_ingredient_line_odd x;
-        print_ingredient_list t;
-      end else
-        begin
-          print_ingredient_line x y;
-          print_ingredient_list t;
-        end
-  | h::t -> print_string h
+  | h::t -> print_list h; print_string "\n"; print_ingredient_list t
+
+
 
 (*Função que imprime uma receita completa*)
 let print_full_recipe recipe = 
   print_recipe_with_prep_mode recipe;
-  print_string ("\n------------ Lista de Ingredientes ------------\n\n ");
+  print_string ("\n------------ Lista de Ingredientes ------------\n\n");
   print_ingredient_list recipe.ingredients;
   print_string ("\n-----------------------------------------------\n\n")
+
+(*Função que imprime a lista de receitas
+INPUT: Lista de receitas (já separada por ';')
+OUTPUT: impressão no ecran das receitas*)
+let print_all_recipes recipes_list =
+  print_string ("\n\n############### LISTA DE RECEITAS ###############\n\n");
+  List.iter (
+    fun recipe_l -> (
+      match recipe_l with
+      | [] -> print_string ("Nao existem receitas\n")
+      | _ ->
+        let recipe = get_recipe recipe_l in
+        print_full_recipe recipe
+    )
+  ) recipes_list;
+  print_newline();
+;;
 
 
 (*Função que imprime uma receita pré-selecionada
 INPUT: Lista de receitas (já separada por ';') cada receita é também uma lista
 OUTPUT: impressão no ecrã da receita seleccionada*)
-
 let print_one_recipe recipes_list =
   let n = ref (input_int 0) in
   let quit_loop = ref false in
@@ -165,23 +200,58 @@ let print_one_recipe recipes_list =
         n := input_int 0
       end
   done
-
-(*Função que imprime a lista de receitas
-INPUT: Lista de receitas (já separada por ';')
-OUTPUT: impressão no ecran das receitas*)
-let print_all_recipes recipes_list =
-  print_string ("\n\n############### LISTA DE RECEITAS ###############\n\n");
-  List.iter (
-    fun recipe_l -> (
-      match recipe_l with
-      | [] -> print_string ("Nao existem receitas\n")
-      | _ ->
-        let recipe = get_recipe recipe_l in
-        print_full_recipe recipe
-    )
-  ) recipes_list;
-  print_newline();
 ;;
+
+(*Função que elabora o relatório geral dos ingredientes
+INPUT: Array de listas com os ingredientes de cada receita em cada elemento*)
+
+let print_ingredient_report a = 
+  for i = 0 to Array.length a-1  do
+    print_ingredient_list a.(i)
+ done
+
+(*Função que retorna o resultado da análise do total da quantidade de cada ingrediente em tres receitas designadas
+INPUT: Lista de receitas (já separada por ';') cada receita é também uma lista
+OUTPUT: Array em que cada elemento contem uma lista dos ingredientes de cada receita escolhida*)
+let selected_recipes list_recipes =
+  let recipes_to_analyze  = Array.make n_rec  [] in
+  let n = ref 0 in
+  print_string "\nInsira o número da 1ª Receita\n";
+  n := input_int 0;
+  let r = ref n_rec in
+  let n_selection = ref 0 in
+  let quit_loop = ref false in
+  while not !quit_loop
+  do
+    if (!n>0) then
+      begin
+        try
+          let recipe_chosen =  get_recipe(List.nth list_recipes (!n-1)) in
+          recipes_to_analyze.(!n_selection)<-  recipe_chosen.ingredients;
+          n_selection := !n_selection + 1;
+          r := !r - 1;
+          if !r=0 then 
+            begin
+              print_ingredient_list (List.flatten (array_to_list recipes_to_analyze));
+              quit_loop:=true
+            end
+          else
+            begin
+              print_string "\nInsira o número da "; print_int (!n_selection+1); print_string"ª receita\n";
+              n := input_int 0;
+            end
+        with Failure nth -> print_string "\nInsira uma opção válida (if)\n"; n := input_int 0
+      end
+    else 
+      begin
+        print_string "Insira uma opção válida(else)\n";
+        n := input_int 0
+      end
+    done
+  ;;
+
+
+
 
 (*Menu Principal*)
 let main = 
@@ -194,8 +264,8 @@ let main =
     let opt = read_line () in
     match opt with
       "1" -> clear 1; print_all_recipes list_recipes
-    | "2" -> print_string "\n\n->>> Selecione o número da receita que pretende imprimir\n\n"; print_one_recipe list_recipes
-    | "3" -> clear 1; print_string "\n\nOpção 3\n\n"
+    | "2" -> print_string "\n\n->>> Selecione o número da receita que pretende imprimir:\n\n"; print_one_recipe list_recipes
+    | "3" -> print_string "\n\n->>> Insira as três receitas que pretende analisar:\n\n"; selected_recipes list_recipes
     | "0" -> clear 1; print_string "\n\nA Sair...\n\n"; menu := 0
     | _   -> clear 1; print_string "\n\nPor favor insira uma Opção Válida\n\n"
   done

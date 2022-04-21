@@ -1,7 +1,7 @@
 
 (* para compilar -> ocamlc str.cma -o  eFolioA eFolioA.ml*) 
 
-let recipes_file = "receitasV1_encoded.csv"
+let recipes_file = "receitas2.csv"
 
 let menu = ref 1
 let opt2 = ref ""
@@ -45,6 +45,15 @@ let array_to_list a =
 let rec print_list = function
   | [] -> ()
   | h::t -> print_string (" "^h^" "); print_list t
+
+(*Função que conta o número de elementos numa lista*)
+let count_dup l = 
+  let sl = List.sort compare l in
+  match sl with
+  | [] -> []
+  | hd::tl -> 
+      let c,acc,x = List.fold_left (fun (c,acc,x) y -> if y = x then c+1,acc,x else 1,(x,c)::acc, y) (1,[],hd) tl in
+      (x,c)::acc ;;
   
 (*************   Funções de tratamento de Listas   *************)
 
@@ -89,7 +98,7 @@ let rec split_string_by_semicolon l = match l with
 INPUT: lista de strings
 OUTPUT: lista de listas com pares*)
 let rec group_ingredient_quantity = function
-  | x :: (y :: tl) -> [x;y] :: (group_ingredient_quantity tl)
+  | x :: (y :: t) -> if x="" then (group_ingredient_quantity t) else [x;y] :: (group_ingredient_quantity t)
   | [] | _::[] -> []
 
 (*Função que transforma uma receita(lista) num tipo recipe *)
@@ -101,8 +110,6 @@ let get_recipe l:recipe =
     prep_mode = List.nth l 2;
     ingredients = rec_ingredients;
   } 
-
-
 
 (*****************FUNÇÓES DE IMPRESSÃO***********)
 
@@ -139,19 +146,18 @@ let print_menu rl=
 let print_recipe_with_prep_mode recipe = print_string (""^ recipe.number ^" - "^ recipe.name ^"\n"^ recipe.prep_mode ^" ")
 
 (*Funções para impressão de um ingrediente com a sua quantidade*)
-let rec print_list = function
+let rec print_ingredient_info = function
   | [] -> ()
   | h::t -> if h="" then print_list t 
-  else begin print_string (" "^h^": "); print_list t end
-
+  else if t = [] then begin print_string (""^h^""); print_ingredient_info t end
+  else begin print_string (" "^h^": "); print_ingredient_info t end
+  
 (*Função que imprime a lista de ingredientes
 INPUT: Lista de ingredientes
 OUTPUT: impressão no ecran dos ingredientes e suas quantidades*)
 let rec print_ingredient_list = function 
   | [] -> () 
-  | h::t -> print_list h; print_string "\n"; print_ingredient_list t
-
-
+  | h::t -> print_ingredient_info h; print_string "\n"; print_ingredient_list t 
 
 (*Função que imprime uma receita completa*)
 let print_full_recipe recipe = 
@@ -202,13 +208,14 @@ let print_one_recipe recipes_list =
   done
 ;;
 
+
+
 (*Função que elabora o relatório geral dos ingredientes
 INPUT: Array de listas com os ingredientes de cada receita em cada elemento*)
 
-let print_ingredient_report a = 
-  for i = 0 to Array.length a-1  do
-    print_ingredient_list a.(i)
- done
+let rec print_ingredient_report = function
+  | [] ->()
+  | (h,c)::t -> print_int c; print_string " x "; print_ingredient_info h; print_string "\n"; print_ingredient_report t
 
 (*Função que retorna o resultado da análise do total da quantidade de cada ingrediente em tres receitas designadas
 INPUT: Lista de receitas (já separada por ';') cada receita é também uma lista
@@ -232,7 +239,7 @@ let selected_recipes list_recipes =
           r := !r - 1;
           if !r=0 then 
             begin
-              print_ingredient_list (List.flatten (array_to_list recipes_to_analyze));
+              print_ingredient_report (count_dup (List.flatten (array_to_list recipes_to_analyze)));
               quit_loop:=true
             end
           else
@@ -249,8 +256,6 @@ let selected_recipes list_recipes =
       end
     done
   ;;
-
-
 
 
 (*Menu Principal*)
